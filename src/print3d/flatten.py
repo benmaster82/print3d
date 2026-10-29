@@ -12,14 +12,16 @@ import re
 from pathlib import Path
 from typing import Any, Iterable, Literal
 
+from print3d.printers import DEFAULT_BED_TYPE, DEFAULT_PRINTER, PRESETS
+
 ProfileKind = Literal["machine", "process", "filament"]
 META_SKIP = {"inherits", "include", "instantiation", "setting_id", "is_custom_defined"}
 NOZZLE_SUFFIX_RE = re.compile(r"\s+\d+\.\d+\s+nozzle.*$")
 
-DEFAULT_MACHINE = "Bambu Lab X2D 0.4 nozzle"
-DEFAULT_PROCESS = "0.20mm Standard @BBL X2D"
-DEFAULT_FILAMENT = "Bambu PLA Basic @BBL X2D 0.4 nozzle"
-DEFAULT_BED_TYPE = "Textured PEI Plate"
+# The X2D's presets, the defaults of flatten_presets (and of flatten_x2d before it).
+DEFAULT_MACHINE = PRESETS[DEFAULT_PRINTER].machine
+DEFAULT_PROCESS = PRESETS[DEFAULT_PRINTER].process
+DEFAULT_FILAMENT = PRESETS[DEFAULT_PRINTER].filament
 
 
 class FlattenError(RuntimeError):
@@ -222,7 +224,16 @@ def write_profile(path: Path, data: dict[str, Any]) -> Path:
     return path
 
 
-def flatten_x2d(
+def vendor_version(profiles_root: Path, vendor: str = "BBL") -> str | None:
+    """The version of Studio's Bambu Lab profile set, from BBL.json."""
+    try:
+        version = load_json(profiles_root / f"{vendor}.json").get("version")
+    except (OSError, json.JSONDecodeError, FlattenError):
+        return None
+    return str(version) if version else None
+
+
+def flatten_presets(
     *,
     profiles_root: Path | None = None,
     output_dir: Path,
@@ -262,6 +273,7 @@ def flatten_x2d(
 
     provenance = {
         "profiles_root": _home_relative(root),
+        "profiles_version": vendor_version(root),
         "machine": machine_leaf,
         "process": process_leaf,
         "filaments": filaments,
@@ -280,3 +292,31 @@ def flatten_x2d(
         "filament_paths": [str(path) for path in filament_paths],
         "provenance": provenance,
     }
+
+
+# Kept for callers from when the X2D was the only printer: the defaults are its presets.
+flatten_x2d = flatten_presets
+
+
+def flatten_printer(
+    printer: str,
+    *,
+    output_dir: Path,
+    profiles_root: Path | None = None,
+    slicer_path: str | None = None,
+) -> dict[str, Any]:
+    """Flatten the Studio presets print3d pins for `printer` (a key of printers.PRESETS)."""
+    presets = PRESETS.get(printer)
+    if presets is None:
+        raise FlattenError(
+            f"print3d does not know the Studio presets for {printer!r}. Known: {', '.join(sorted(PRESETS))}."
+        )
+    return flatten_presets(
+        profiles_root=profiles_root,
+        output_dir=output_dir,
+        machine_leaf=presets.machine,
+        process_leaf=presets.process,
+        filament_leaves=[presets.filament],
+        bed_type=presets.bed_type,
+        slicer_path=slicer_path,
+    )

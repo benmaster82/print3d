@@ -7,9 +7,9 @@ Two signals feed the optimise loop:
   - the sliced gcode, which is the ground truth for time, material and how the
     part is built up layer by layer.
 
-The pinned X2D process has `enable_support = 0`, so the slicer will not warn
-about an overhang - it will just print it badly. That is why the mesh analysis
-carries most of the weight here.
+The pinned processes (X2D and P2S) have `enable_support = 0`, so the slicer will
+not warn about an overhang - it will just print it badly. That is why the mesh
+analysis carries most of the weight here.
 """
 
 from __future__ import annotations

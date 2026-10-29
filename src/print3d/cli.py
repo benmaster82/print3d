@@ -9,11 +9,12 @@ from pathlib import Path
 
 from print3d.blender import BlenderError, find_blender, run_model_script
 from print3d.brief import parse_brief
+from print3d import printers
 from print3d import setup as installer
 from print3d import spec as specs
 from print3d.dfm import check_mesh
 from print3d.fits import KINDS, load_fits, save_fits
-from print3d.flatten import flatten_x2d
+from print3d.flatten import flatten_printer
 from print3d.handoff import build_handoff
 from print3d.likeness import check_job
 from print3d.paths import coupon_script, default_profiles_dir, job_path, safe_name
@@ -225,7 +226,14 @@ def cmd_setup(args: argparse.Namespace) -> int:
 
 
 def cmd_flatten(args: argparse.Namespace) -> int:
-    _print_json(flatten_x2d(output_dir=Path(args.output) if args.output else default_profiles_dir()))
+    printer = args.printer or printers.active_printer()
+    output = Path(args.output) if args.output else printers.PROFILES / printer
+    _print_json(flatten_printer(printer, output_dir=output))
+    return 0
+
+
+def cmd_printer(args: argparse.Namespace) -> int:
+    _print_json(printers.choose_printer(args.choose) if args.choose else printers.status())
     return 0
 
 
@@ -235,10 +243,12 @@ def cmd_status(_args: argparse.Namespace) -> int:
         blender = str(find_blender())
     except BlenderError as exc:
         blender = f"missing: {exc}"
+    choice = printers.printer_choice()
     _print_json(
         {
             "blender": blender,
             "studio": str(find_studio()),
+            "printer": {**choice, "summary": printers.printer_info(choice["printer"]).describe()},
             "profiles": str(profiles),
             "profiles_present": all(
                 (profiles / name).is_file()
@@ -268,7 +278,7 @@ def cmd_plan(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="print3d", description="Idea to a reviewable Bambu Studio project for an X2D"
+        prog="print3d", description="Idea to a reviewable Bambu Studio project for a Bambu Lab X2D or P2S"
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
@@ -398,8 +408,14 @@ def build_parser() -> argparse.ArgumentParser:
     setup_cmd.add_argument("--yes", action="store_true", help="Apply without asking")
     setup_cmd.set_defaults(func=cmd_setup)
 
-    flatten_cmd = sub.add_parser("flatten", help="Rebuild pinned X2D Studio profiles")
-    flatten_cmd.add_argument("--output")
+    printer_cmd = sub.add_parser("printer", help="Show the Bambu Lab printer print3d slices for, or choose another")
+    printer_cmd.add_argument("choose", nargs="?", help=f"One of: {', '.join(printers.available())}")
+    printer_cmd.set_defaults(func=cmd_printer)
+
+    flatten_cmd = sub.add_parser("flatten", help="Rebuild a printer's pinned presets from Bambu Studio's")
+    flatten_cmd.add_argument("--printer", choices=sorted(printers.PRESETS),
+                             help="Default: the printer print3d slices for")
+    flatten_cmd.add_argument("--output", help="Default: src/print3d/profiles/<printer>")
     flatten_cmd.set_defaults(func=cmd_flatten)
 
     status_cmd = sub.add_parser("status", help="Show Blender, slicer and profile paths")

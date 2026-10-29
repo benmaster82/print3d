@@ -2,7 +2,7 @@
 
 A [Hermes Agent](https://github.com/NousResearch/hermes-agent) plugin that turns
 an idea, a photo of an object, or the shop listing of something you would
-otherwise buy into a Bambu Studio project for a **Bambu Lab X2D (0.4 mm
+otherwise buy into a Bambu Studio project for a **Bambu Lab X2D or P2S (0.4 mm
 nozzle)**. One part or several, in one colour or two, with fits measured against
 your own printer, a 3D view to turn the result around in, and a print sheet to
 hand on. It also works with Claude Code, Codex, Cursor and Gemini CLI.
@@ -103,6 +103,29 @@ project file, `jobs/<slug>/slice/<slug>.3mf`. Open that one in Studio: the
 `.gcode.3mf` beside it is the sliced job and won't open in the Prepare tab. Ask
 for a hand-off and you also get a [print sheet](#hand-it-off).
 
+## Your printer
+
+print3d slices for the X2D unless you choose another printer it has presets for:
+
+| Printer | Key | Nozzles | Build volume |
+| --- | --- | --- | --- |
+| Bambu Lab X2D | `x2d-0.4` (default) | two, 0.4 mm | 256 × 256 × 261 mm |
+| Bambu Lab P2S | `p2s-0.4` | one, 0.4 mm | 256 × 256 × 256 mm |
+
+```bash
+print3d printer p2s-0.4      # saved in ~/print3d/printer.json
+```
+
+In Hermes, ask the agent to switch; it uses the `printer` tool. `$PRINT3D_PRINTER`
+overrides the saved choice for one run. The build volume check, the colour
+advice and the print sheet read the chosen printer's presets, and every report
+names the printer it sliced for. A choice that names a printer print3d has no
+presets for is an error, never a quiet fall back to the X2D.
+
+On the P2S every colour after the first is a filament change through the AMS,
+with a purge each time and a prime tower beside the part, so a multi-colour
+part takes more time and filament than on the X2D.
+
 ## What it runs and reaches
 
 - **Local programs:** Blender, to run the model scripts the agent writes and to
@@ -114,7 +137,7 @@ for a hand-off and you also get a [print sheet](#hand-it-off).
   the read-only tools run without asking.
 - **Files:** jobs are written to `~/print3d/jobs` (or `$PRINT3D_JOBS`), and
   print3d reads the photos you point it at. Your printer clearances are saved in
-  `~/print3d/fits.json`.
+  `~/print3d/fits.json`, the printer you chose in `~/print3d/printer.json`.
 - **Network:** print3d itself makes no network calls. Installing the plugin asks
   to add its Python dependencies (Pillow, mcp) to Hermes's environment, and on
   first start `uvx` downloads them from PyPI for the server's own environment.
@@ -172,8 +195,9 @@ fill in and run again.
 | `coupon` | Slice the fit coupon that calibrates your printer's clearances |
 | `fit show` / `fit set` | The clearance per fit that scripts get as `params["fit"]`, and recording yours |
 | `plan model.stl out.gcode.3mf` | Show the Studio command without running it |
-| `status` | Where Blender and Studio were found |
-| `flatten` | Rebuild the X2D presets in `src/print3d/profiles/x2d-0.4/` |
+| `status` | Where Blender and Studio were found, and the printer |
+| `printer [x2d-0.4 \| p2s-0.4]` | Show the printer print3d slices for, or choose another |
+| `flatten [--printer <key>]` | Rebuild a printer's presets in `src/print3d/profiles/<key>/` from Studio's |
 | `setup` | Register print3d with your agents |
 | `mcp` | Run the MCP server on stdio (agents launch this) |
 
@@ -324,7 +348,8 @@ Replay it with `pytest tests/test_bracket_benchmark.py`; rebuild the media with
 Most things worth designing are more than one solid. Model every part where it
 sits when assembled, name it, and say how it turns to print. The run checks each
 printed object on its own, measures the gaps between parts, gives each colour its
-own filament on the X2D's two nozzles, and slices all of it into one project.
+own filament (on the X2D's two nozzles, or through the P2S's AMS), and slices all
+of it into one project.
 
 ```python
 c = params["fit"]["slide"]                       # this printer's slide clearance
