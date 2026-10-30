@@ -169,6 +169,18 @@ To update, run `uv tool upgrade print3d`, then `print3d setup` again.
 
 ## Command line
 
+Before writing a model, run `print3d doctor` (or call the MCP `doctor` tool).
+It checks Blender and Bambu Studio together, reporting their paths, probe results
+and versions when available. Each dependency probe has a five-second timeout.
+The CLI exits 1 if either dependency is missing or its probe fails; a successful
+probe with an unknown version is reported with `version: null` and does not fail
+the check. `doctor` does not create jobs or change agent settings.
+
+Executable jobs also check for Bambu Studio before modelling or mesh analysis.
+A missing Studio installation fails the current attempt and blocks a new handoff
+from an older report. Scaffolding and `--dry-run` still work without Studio;
+a dry run that models geometry still needs Blender.
+
 The same steps, without an agent:
 
 ```bash
@@ -196,6 +208,7 @@ fill in and run again.
 | `fit show` / `fit set` | The clearance per fit that scripts get as `params["fit"]`, and recording yours |
 | `plan model.stl out.gcode.3mf` | Show the Studio command without running it |
 | `status` | Where Blender and Studio were found, and the printer |
+| `doctor` | Probe Blender and Studio before writing a model; report paths, availability and versions |
 | `printer [x2d-0.4 \| p2s-0.4]` | Show the printer print3d slices for, or choose another |
 | `flatten [--printer <key>]` | Rebuild a printer's presets in `src/print3d/profiles/<key>/` from Studio's |
 | `setup` | Register print3d with your agents |

@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from print3d.blender import BlenderError, find_blender, run_model_script
+from print3d.doctor import dependency_status
 from print3d.brief import parse_brief
 from print3d import printers
 from print3d import setup as installer
@@ -237,6 +238,12 @@ def cmd_printer(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_doctor(_args: argparse.Namespace) -> int:
+    report = dependency_status()
+    _print_json(report)
+    return 0 if report["ready"] else 1
+
+
 def cmd_status(_args: argparse.Namespace) -> int:
     profiles = default_profiles_dir()
     try:
@@ -420,6 +427,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     status_cmd = sub.add_parser("status", help="Show Blender, slicer and profile paths")
     status_cmd.set_defaults(func=cmd_status)
+
+    doctor_cmd = sub.add_parser("doctor", help="Check Blender and Bambu Studio before starting a job")
+    doctor_cmd.set_defaults(func=cmd_doctor)
 
     plan_cmd = sub.add_parser("plan", help="Print the Studio command without running it")
     plan_cmd.add_argument("mesh")
