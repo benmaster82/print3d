@@ -170,11 +170,19 @@ To update, run `uv tool upgrade print3d`, then `print3d setup` again.
 ## Command line
 
 Before writing a model, run `print3d doctor` (or call the MCP `doctor` tool).
-It checks Blender and Bambu Studio together, reporting their paths, probe results
-and versions when available. Each dependency probe has a five-second timeout.
-The CLI exits 1 if either dependency is missing or its probe fails; a successful
-probe with an unknown version is reported with `version: null` and does not fail
-the check. `doctor` does not create jobs or change agent settings.
+It checks Blender and Bambu Studio together, reporting their paths, diagnostics
+and versions when available. Windows reads Studio's executable version resource;
+macOS reads its bundle's Info.plist. Neither starts Studio. Linux uses a best-effort
+`--help` probe. Each subprocess probe has a five-second timeout.
+The CLI exits 1 if either dependency is missing or Blender's probe fails.
+Studio is ready when its executable is found; its version detection is best effort,
+so a timeout, launch error or nonzero help exit does not block modelling.
+Unknown versions are reported as `version: null`. Readiness is not a guarantee
+that slicing will succeed. Probes use closed stdin and temporary output files
+to avoid waiting on pipes inherited by helpers. On timeout the direct child is
+terminated; independently spawned helpers are not guaranteed to be terminated.
+`doctor` does not create jobs or change agent settings. `status` shares its
+executable lookup without launching either application.
 
 Executable jobs also check for Bambu Studio before modelling or mesh analysis.
 A missing Studio installation fails the current attempt and blocks a new handoff

@@ -99,7 +99,9 @@ def _with_images(payload: dict[str, Any], paths: list[str | None]) -> list[Any]:
 def doctor() -> str:
     """Check Blender and Bambu Studio paths, availability and versions before writing a model.
 
-    Runs bounded --version/--help probes; unknown versions are reported as null.
+    Studio is ready when found; version detection never blocks readiness.
+    Windows/macOS read metadata without launching Studio; Linux probes --help.
+    Blender must pass --version. Unknown versions are reported as null.
     Does not create jobs or change agent settings.
     """
     return _json(dependency_status())

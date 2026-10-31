@@ -27,7 +27,10 @@ Nothing here reaches the printer. The last step is a sentence handing the user a
 
 Before writing a model for a new job, call the MCP `doctor` tool or run
 `print3d doctor`. Resolve any missing or unavailable Blender or Bambu Studio
-dependency first. A null version means the probe could not identify a version;
+dependency first. Studio is ready when its executable is found; a failed version
+check is informational and does not block modelling. Windows and macOS read
+Studio metadata without launching it; Linux uses a best-effort help probe. Blender must pass its
+version probe. A null version means the probe could not identify a version;
 it does not mean the application is missing. Run the check again after changing
 the application paths or installing a dependency.
 
